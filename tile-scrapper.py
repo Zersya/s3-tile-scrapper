@@ -183,6 +183,83 @@ def estimate_size(tile_count, avg_tile_size_kb=15):
     size_gb = size_mb / 1024
     return size_mb, size_gb
 
+def benchmark_speed(num_samples=10):
+    """
+    Benchmark download+upload speed by testing a few sample tiles.
+    Returns average time per tile in seconds.
+    """
+    print(f"\nBenchmarking speed with {num_samples} sample tiles...")
+    
+    # Sample tiles from different zoom levels
+    sample_tiles = []
+    min_lon, min_lat, max_lon, max_lat = BOUNDING_BOX
+    
+    for z in [8, 10, 12]:  # Test different zoom levels
+        x_min, y_min = deg2num(max_lat, min_lon, z)
+        x_max, y_max = deg2num(min_lat, max_lon, z)
+        mid_x = (x_min + x_max) // 2
+        mid_y = (y_min + y_max) // 2
+        sample_tiles.append((z, mid_x, mid_y))
+        sample_tiles.append((z, mid_x + 1, mid_y))
+        sample_tiles.append((z, mid_x, mid_y + 1))
+        if len(sample_tiles) >= num_samples:
+            break
+    
+    sample_tiles = sample_tiles[:num_samples]
+    times = []
+    
+    for z, x, y in sample_tiles:
+        url = SOURCE_URL_PATTERN.format(z=z, x=x, y=y)
+        s3_key = f"{DESTINATION_PREFIX}/{z}/{x}/{y}.png"
+        
+        start = time.time()
+        try:
+            # Download
+            response = requests.get(url, stream=True, timeout=15)
+            if response.status_code == 200:
+                content = response.content
+                # Upload to S3
+                s3_client.put_object(
+                    Bucket=AWS_S3_BUCKET,
+                    Key=s3_key,
+                    Body=content,
+                    ContentType='image/png'
+                )
+            elapsed = time.time() - start
+            times.append(elapsed)
+            print(f"  Sample {len(times)}/{num_samples}: {elapsed:.3f}s")
+        except Exception as e:
+            print(f"  Sample failed: {e}")
+            continue
+    
+    if not times:
+        return None
+    
+    avg_time = sum(times) / len(times)
+    return avg_time
+
+def format_duration(seconds):
+    """Format seconds into human-readable duration."""
+    if seconds < 60:
+        return f"{seconds:.0f} seconds"
+    elif seconds < 3600:
+        minutes = seconds / 60
+        return f"{minutes:.1f} minutes"
+    elif seconds < 86400:
+        hours = seconds / 3600
+        return f"{hours:.1f} hours"
+    else:
+        days = seconds / 86400
+        hours = (seconds % 86400) / 3600
+        return f"{days:.0f} days {hours:.0f} hours"
+
+def estimate_time(total_tiles, avg_time_per_tile, workers):
+    """Estimate total time considering parallel workers."""
+    # Effective time = (total_tiles * avg_time) / workers
+    # Add 20% overhead for thread scheduling and S3 existence checks
+    effective_time = (total_tiles * avg_time_per_tile) / workers * 1.2
+    return effective_time
+
 def main():
     global stats
     
@@ -209,6 +286,18 @@ def main():
     print("-" * 60)
     print(f"TOTAL TILES: {total_tiles:,}")
     print(f"Estimated Size: {est_mb:,.0f} MB ({est_gb:.2f} GB)")
+    print("-" * 60)
+    
+    # Benchmark to estimate time
+    avg_time = benchmark_speed(num_samples=10)
+    if avg_time:
+        estimated_seconds = estimate_time(total_tiles, avg_time, MAX_WORKERS)
+        print(f"\nBenchmark Results:")
+        print(f"  Avg time per tile: {avg_time:.3f}s")
+        print(f"  Workers: {MAX_WORKERS}")
+        print(f"  Estimated total time: {format_duration(estimated_seconds)}")
+    else:
+        print("\nWarning: Could not benchmark speed (check network/credentials)")
     print("-" * 60)
     
     if not NO_CONFIRM:
