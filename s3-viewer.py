@@ -85,12 +85,12 @@ def calculate_folder_stats(bucket, prefix):
 
 def infer_tile_url(bucket, region, prefix, example_key):
     """
-    Attempt to construct the Z/X/Y template URL from a file key.
-    Example Key: maps/layer1/5/10/20.png
-    Target: https://bucket.s3.region.amazonaws.com/maps/layer1/{z}/{x}/{y}.png
+    Construct the Z/X/Y template URL using CloudFront.
+    Example Key: raster/10/782/494.png
+    Target: https://{base}/raster/{z}/{x}/{y}.png
     """
-    # Base S3 URL
-    base = f"https://{bucket}.s3.{region}.amazonaws.com"
+
+    base = os.getenv("BASE_URL_TILE")
     
     # Try to find extension
     ext = example_key.split('.')[-1]
