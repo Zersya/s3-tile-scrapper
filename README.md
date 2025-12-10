@@ -89,7 +89,7 @@ python tile-scrapper.py --max-zoom 14
 | `--max-zoom` | 16 | Maximum zoom level |
 | `--workers` | 20 | Number of concurrent threads |
 | `--dry-run` | false | Only show estimation, don't scrape |
-| `--no-confirm` | false | Skip confirmation prompt |
+| `--no-confirm` / `-y` | false | Skip confirmation prompt |
 
 ## Examples
 
@@ -105,6 +105,8 @@ python tile-scrapper.py --max-zoom 12 --workers 30
 
 ### Run without confirmation (automation):
 ```bash
+python tile-scrapper.py --max-zoom 14 -y
+# or
 python tile-scrapper.py --max-zoom 14 --no-confirm
 ```
 

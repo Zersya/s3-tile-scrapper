@@ -20,7 +20,7 @@ services:
       - ./.env:/app/.env:ro
     
     # Command with default arguments (can override)
-    command: ["--max-zoom", "14", "--workers", "20"]
+    command: ["--max-zoom", "14", "--workers", "20", "--no-confirm"]
     
     # Restart policy
     restart: unless-stopped

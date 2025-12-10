@@ -352,7 +352,7 @@ def parse_args():
                         help=f'Number of concurrent workers (default: {MAX_WORKERS})')
     parser.add_argument('--dry-run', action='store_true',
                         help='Only show tile count estimation, do not scrape')
-    parser.add_argument('--no-confirm', action='store_true',
+    parser.add_argument('--no-confirm', '-y', action='store_true',
                         help='Skip confirmation prompt')
     return parser.parse_args()
 
