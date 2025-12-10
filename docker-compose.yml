@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  tile-scrapper:
+    build: .
+    image: tile-scrapper:latest
+    container_name: indonesia-tile-scrapper
+    
+    # Environment variables (can override .env)
+    environment:
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - SOURCE_URL_PATTERN=${SOURCE_URL_PATTERN}
+    
+    # Mount logs directory
+    volumes:
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+    
+    # Command with default arguments (can override)
+    command: ["--max-zoom", "14", "--workers", "20"]
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 2G
+        reservations:
+          cpus: '2'
+          memory: 1G
